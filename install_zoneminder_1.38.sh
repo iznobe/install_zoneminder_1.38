@@ -60,18 +60,18 @@ case "$os" in
 			exit 0
 		fi
 		echo "deb https://zmrepo.zoneminder.com/debian/release-1.38 $code_n_os/" | sudo tee /etc/apt/sources.list.d/zoneminder.list
-		apt update		
-		apt install -y zoneminder
+		apt update
 	;;
 
 	ubuntu|linuxmint)
 		add-apt-repository -y ppa:iconnor/zoneminder-1.38
-		apt install -y zoneminder
 	;;
 
 	*)
 	;;
 esac
+
+apt install -y zoneminder
 
 # configuration APACHE / PHP / zoneminder
 chmod 640 /etc/zm/zm.conf
