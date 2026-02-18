@@ -19,7 +19,7 @@ apt autopurge -y
 packages2install=("software-properties-common" "apache2" "mariadb-server" "php" "libapache2-mod-php" "php-mysql" "lsb-release" "gnupg2")
 for p in "${packages2install[@]}"; do
 	if ! dpkg-query -f '${binary:Package}\n' -W "$p" &>/dev/null; then
-    apt-get install -qq "$p"
+        apt-get install -qq "$p"
 	else
 		echo "$p is already installed"
 	fi
@@ -32,7 +32,7 @@ for d in /etc/php/*; do
 	echo "date.timezone = $(</etc/timezone)" | tee -a "$d"/apache2/conf.d/zoneminder.custom.ini
 done
 
-#Activating apache2 on start :
+# Activating apache2 on start :
 mkdir /var/log/apache2
 systemctl enable apache2
 systemctl start apache2
@@ -59,7 +59,6 @@ case "$os" in
 			echo "error to retrieve key!"
 			exit 0
 		fi
-		#echo "deb https://zmrepo.zoneminder.com/debian/master $code_n_os/" | sudo tee /etc/apt/sources.list.d/zoneminder.list
 		echo "deb https://zmrepo.zoneminder.com/debian/release-1.38 $code_n_os/" | sudo tee /etc/apt/sources.list.d/zoneminder.list
 		apt update		
 		apt install -y zoneminder
@@ -83,11 +82,9 @@ adduser www-data video
 a2enconf zoneminder
 a2enmod rewrite headers expires
 service apache2 reload
-#systemctl reload apache2
 
 echo
 echo "Install complete. follow instructions in starter guide : https://zoneminder.readthedocs.io/en/latest/userguide/gettingstarted.html"
-xdg-open https://zoneminder.readthedocs.io/en/latest/userguide/gettingstarted.html
 
 sleep 10
 xdg-open http://localhost/zm
