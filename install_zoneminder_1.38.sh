@@ -9,7 +9,7 @@ fi
 # detect installed OS
 os=$(grep -E ^ID= /usr/lib/os-release | cut -d '=' -f2)
 code_n_os=$(grep -E ^VERSION_CODENAME= /usr/lib/os-release | cut -d '=' -f2)
-echo "$code_n_os"
+echo "OS is : $os : $code_n_os"
 
 apt update || exit 0 # quit if update isn't working
 apt autopurge -y
