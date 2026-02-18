@@ -8,7 +8,9 @@ if ((UID)); then
 fi
 
 # detect installed OS
-os="$(grep -E ^ID= /usr/lib/os-release | cut -d '=' -f2)"
+os=$(grep -E ^ID= /usr/lib/os-release | cut -d '=' -f2)
+code_n_os=$(grep -E ^VERSION_CODENAME= /usr/lib/os-release | cut -d '=' -f2)
+echo "$code_n_os"
 
 apt update || exit 0 # quit if update isn't working
 apt autopurge -y
@@ -18,10 +20,11 @@ packages2install=("software-properties-common" "apache2" "mariadb-server" "php" 
 for p in "${packages2install[@]}"; do
 	if ! dpkg-query -f '${binary:Package}\n' -W "$p" &>/dev/null; then
     apt-get install -qq "$p"
-  fi
+	else
+		echo "$p is already installed"
+	fi
 done
 
-#sed -Ei 's@[;](date\.timezone =).*@\1 '"$(<\/etc\/timezone)"'@' /etc/php/*/apache2/php.ini
 # it is better to not modify the php.ini file ( modification will be erased when php will be upgrade )
 # but if we create a new file in directory /etc/php/*/apache2/conf.d/zoneminder.custom.ini for each version of apache , no problem , so :
 for d in /etc/php/*; do
@@ -56,7 +59,8 @@ case "$os" in
 			echo "error to retrieve key!"
 			exit 0
 		fi
-		echo "deb https://zmrepo.zoneminder.com/debian/master $(lsb_release  -c -s)/" | sudo tee /etc/apt/sources.list.d/zoneminder.list
+		#echo "deb https://zmrepo.zoneminder.com/debian/master $code_n_os/" | sudo tee /etc/apt/sources.list.d/zoneminder.list
+		echo "deb https://zmrepo.zoneminder.com/debian/release-1.38 $code_n_os/" | sudo tee /etc/apt/sources.list.d/zoneminder.list
 		apt update		
 		apt install -y zoneminder
 	;;
@@ -83,6 +87,7 @@ service apache2 reload
 
 echo
 echo "Install complete. follow instructions in starter guide : https://zoneminder.readthedocs.io/en/latest/userguide/gettingstarted.html"
+xdg-open https://zoneminder.readthedocs.io/en/latest/userguide/gettingstarted.html
 
-Sleep 10
+sleep 10
 xdg-open http://localhost/zm
