@@ -12,7 +12,7 @@ code_n_os=$(grep -E ^VERSION_CODENAME= /usr/lib/os-release | cut -d '=' -f2)
 echo "OS is : $os : $code_n_os"
 
 apt update || exit 0 # quit if update isn't working
-apt autopurge -y
+#apt autopurge -y
 
 # veryfi and install if necessary , packages listed below :
 packages2install=("software-properties-common" "apache2" "mariadb-server" "php" "libapache2-mod-php" "php-mysql" "lsb-release" "gnupg2")
@@ -30,15 +30,6 @@ for d in /etc/php/*; do
 	echo "[Date]" | tee "$d"/apache2/conf.d/zoneminder.custom.ini
 	echo "date.timezone = $(</etc/timezone)" | tee -a "$d"/apache2/conf.d/zoneminder.custom.ini
 done
-
-# Activating apache2 on start :
-mkdir /var/log/apache2
-systemctl enable apache2
-systemctl start apache2
-
-# configuring mariadb / mysql server DB :
-mysql --defaults-file=/etc/mysql/debian.cnf -p < /usr/share/zoneminder/db/zm_create.sql
-mysql --defaults-file=/etc/mysql/debian.cnf -p -e "grant lock tables,alter,drop,select,insert,update,delete,create,index,alter routine,create routine, trigger,execute,references on zm.* to 'zmuser'@localhost identified by 'zmpass';"
 
 # delete all sources referencing zoneminder :
 rm /etc/apt/sources.list.d/*zoneminder*
@@ -72,15 +63,22 @@ esac
 
 apt install -y zoneminder
 
+# configuring mariadb / mysql server DB :
+mysql --defaults-file=/etc/mysql/debian.cnf -p < /usr/share/zoneminder/db/zm_create.sql
+mysql --defaults-file=/etc/mysql/debian.cnf -p -e "grant lock tables,alter,drop,select,insert,update,delete,create,index,alter routine,create routine, trigger,execute,references on zm.* to 'zmuser'@localhost identified by 'zmpass';"
+# Activating apache2 on start :
+mkdir /var/log/apache2
+systemctl enable apache2
+systemctl start apache2
 # configuration APACHE / PHP / zoneminder
 chmod 640 /etc/zm/zm.conf
 chown root:www-data /etc/zm/zm.conf
-systemctl enable zoneminder
-service zoneminder start
 adduser www-data video
 a2enconf zoneminder
 a2enmod rewrite headers expires
-service apache2 reload
+systemctl reload apache2
+systemctl enable zoneminder
+service zoneminder start
 
 echo
-echo "Install complete. follow instructions in starter guide : https://zoneminder.readthedocs.io/en/latest/userguide/gettingstarted.html"
+echo "Install complete. Please follow instructions in starter guide : https://zoneminder.readthedocs.io/en/latest/userguide/gettingstarted.html"
