@@ -66,19 +66,19 @@ apt install -y zoneminder
 # configuring mariadb / mysql server DB :
 mysql --defaults-file=/etc/mysql/debian.cnf -p < /usr/share/zoneminder/db/zm_create.sql
 mysql --defaults-file=/etc/mysql/debian.cnf -p -e "grant lock tables,alter,drop,select,insert,update,delete,create,index,alter routine,create routine, trigger,execute,references on zm.* to 'zmuser'@localhost identified by 'zmpass';"
-# Activating apache2 on start :
-mkdir /var/log/apache2
+# configuring apache2 on start :
 systemctl enable apache2
 systemctl start apache2
-# configuration APACHE / PHP / zoneminder
+# configuring zoneminder
 chmod 640 /etc/zm/zm.conf
 chown root:www-data /etc/zm/zm.conf
 adduser www-data video
 a2enconf zoneminder
 a2enmod rewrite headers expires
-systemctl reload apache2
 systemctl enable zoneminder
-service zoneminder start
+systemctl start zoneminder
+
+systemctl restart apache2
 
 echo
 echo "Install complete. Please follow instructions in starter guide : https://zoneminder.readthedocs.io/en/latest/userguide/gettingstarted.html"
