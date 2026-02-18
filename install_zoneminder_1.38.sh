@@ -1,5 +1,4 @@
 #!/bin/bash
-clear
 echo "This script installs LAMP + ZoneMinder 1.38.x on Debian 13 , Ubuntu 24.04 ( and probably newer versions but not tested ) and Linux Mint "
 
 if ((UID)); then
@@ -85,6 +84,3 @@ service apache2 reload
 
 echo
 echo "Install complete. follow instructions in starter guide : https://zoneminder.readthedocs.io/en/latest/userguide/gettingstarted.html"
-
-sleep 10
-xdg-open http://localhost/zm
