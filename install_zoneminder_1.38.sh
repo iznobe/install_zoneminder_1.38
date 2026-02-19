@@ -16,12 +16,12 @@ test -f /usr/lib/os-release && . /usr/lib/os-release || exit 1 # $ID , $NAME , $
 packages2install=("software-properties-common" "apache2" "mariadb-server" "php" "libapache2-mod-php" "php-mysql" "lsb-release" "gnupg2")
 for p in "${packages2install[@]}"; do
 	if ! dpkg-query -l "$p" | grep -q "^[hi]i"; then
-		if test "$p" = "mariadb-server" && ! dpkg-query -l "mysql-server" | grep -q "^[hi]i"; then
-    	apt-get install -qq "$p"
-    else
+		if test "$p" = "mariadb-server" &&  dpkg-query -l "mysql-server" | grep -q "^[hi]i"; then
     	echo "mysql-server is already installed , mariadb-server will not be installed !"
+    	continue
+    else
+    	apt-get install -qq "$p"
     fi
-    apt-get install -qq "$p"
   fi
 done
 
