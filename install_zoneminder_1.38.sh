@@ -34,7 +34,7 @@ done
 
 # delete all sources referencing zoneminder :
 rm /etc/apt/sources.list.d/*zoneminder*
-apt clean && apt update && apt full-upgrade -y && apt autopurge -y
+apt clean && apt full-upgrade -y
 
 # do  what you need in your OS :
 case "$os" in
@@ -60,7 +60,7 @@ case "$os" in
 	;;
 esac
 
-apt-get install -qq zoneminder
+apt-get install -qq zoneminder && apt autopurge -y
 
 # configuring apache2 on start :
 systemctl enable apache2
@@ -68,18 +68,16 @@ systemctl start apache2
 a2enmod cgi rewrite headers expires
 systemctl restart apache2
 
+# configuring mariadb / mysql server DB :
+mysql --defaults-file=/etc/mysql/debian.cnf -p < /usr/share/zoneminder/db/zm_create.sql
+mysql --defaults-file=/etc/mysql/debian.cnf -p -e "grant lock tables,alter,drop,select,insert,update,delete,create,index,alter routine,create routine, trigger,execute,references on zm.* to 'zmuser'@localhost identified by 'zmpass';"
+
 # configuring zoneminder
 chmod 640 /etc/zm/zm.conf
 chown root:www-data /etc/zm/zm.conf
 adduser www-data video
 a2enconf zoneminder
-
 systemctl restart apache2
-
-# configuring mariadb / mysql server DB :
-mysql --defaults-file=/etc/mysql/debian.cnf -p < /usr/share/zoneminder/db/zm_create.sql
-mysql --defaults-file=/etc/mysql/debian.cnf -p -e "grant lock tables,alter,drop,select,insert,update,delete,create,index,alter routine,create routine, trigger,execute,references on zm.* to 'zmuser'@localhost identified by 'zmpass';"
-
 systemctl enable zoneminder
 systemctl start zoneminder
 systemctl daemon-reload # necessary when upgrading
