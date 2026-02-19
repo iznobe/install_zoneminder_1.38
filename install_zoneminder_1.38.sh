@@ -6,22 +6,23 @@ if ((UID)); then
   exit 0
 fi
 
-# detect installed OS
-os=$(grep -E ^ID= /usr/lib/os-release | cut -d '=' -f2)
-code_n_os=$(grep -E ^VERSION_CODENAME= /usr/lib/os-release | cut -d '=' -f2)
-echo "OS is : $os : $code_n_os"
-
 apt update || exit 0 # quit if update isn't working
-#apt autopurge -y
+
+# detect installed OS
+test -f /etc/issue.net && os=$(cut -d " " -f1  /etc/issue.net) || exit 1
+test -f /usr/lib/os-release && . /usr/lib/os-release || exit 1 # $ID , $NAME , $VERSION_CODENAME"
 
 # veryfi and install if necessary , packages listed below :
 packages2install=("software-properties-common" "apache2" "mariadb-server" "php" "libapache2-mod-php" "php-mysql" "lsb-release" "gnupg2")
 for p in "${packages2install[@]}"; do
-	if ! dpkg-query -f '${binary:Package}\n' -W "$p" &>/dev/null; then
-        apt-get install -qq "$p"
-	else
-		echo "$p is already installed"
-	fi
+	if ! dpkg-query -l "$p" | grep -q "^[hi]i"; then
+		if test "$p" = "mariadb-server" && ! dpkg-query -l "mysql-server" | grep -q "^[hi]i"; then
+    	apt-get install -qq "$p"
+    else
+    	echo "mysql-server is already installed , mariadb-server will not be installed !"
+    fi
+    apt-get install -qq "$p"
+  fi
 done
 
 # it is better to not modify the php.ini file ( modification will be erased when php will be upgrade )
@@ -33,27 +34,25 @@ done
 
 # delete all sources referencing zoneminder :
 rm /etc/apt/sources.list.d/*zoneminder*
-apt clean
-# upgrade packages :
-apt update
-apt full-upgrade -y
+apt clean && apt update && apt full-upgrade -y && apt autopurge -y
 
 # do  what you need in your OS :
 case "$os" in
 
-	debian)
+	Debian|LMDE)
 		if test -f /etc/apt/trusted.gpg.d/zmrepo.gpg; then
 			rm /etc/apt/trusted.gpg.d/zmrepo.gpg
 		fi
 		if ! wget -O- https://zmrepo.zoneminder.com/debian/archive-keyring.gpg | sudo gpg --dearmour -o /etc/apt/trusted.gpg.d/zmrepo.gpg; then
 			echo "error to retrieve key!"
-			exit 0
+			exit 2
 		fi
-		echo "deb https://zmrepo.zoneminder.com/debian/release-1.38 $code_n_os/" | sudo tee /etc/apt/sources.list.d/zoneminder.list
+		# echo "deb https://zmrepo.zoneminder.com/debian/release-1.38 $VERSION_CODENAME/" | sudo tee /etc/apt/sources.list.d/zoneminder.list
+		echo "deb https://zmrepo.zoneminder.com/debian/master $VERSION_CODENAME/" | sudo tee /etc/apt/sources.list.d/zoneminder.list
 		apt update
 	;;
 
-	ubuntu|linuxmint)
+	Ubuntu|Linux)
 		add-apt-repository -y ppa:iconnor/zoneminder-1.38
 	;;
 
@@ -61,24 +60,29 @@ case "$os" in
 	;;
 esac
 
-apt install -y zoneminder
+apt-get install -qq zoneminder
 
-# configuring mariadb / mysql server DB :
-mysql --defaults-file=/etc/mysql/debian.cnf -p < /usr/share/zoneminder/db/zm_create.sql
-mysql --defaults-file=/etc/mysql/debian.cnf -p -e "grant lock tables,alter,drop,select,insert,update,delete,create,index,alter routine,create routine, trigger,execute,references on zm.* to 'zmuser'@localhost identified by 'zmpass';"
 # configuring apache2 on start :
 systemctl enable apache2
 systemctl start apache2
+a2enmod cgi rewrite headers expires
+systemctl restart apache2
+
 # configuring zoneminder
 chmod 640 /etc/zm/zm.conf
 chown root:www-data /etc/zm/zm.conf
 adduser www-data video
 a2enconf zoneminder
-a2enmod rewrite headers expires
-systemctl enable zoneminder
-systemctl start zoneminder
 
 systemctl restart apache2
+
+# configuring mariadb / mysql server DB :
+mysql --defaults-file=/etc/mysql/debian.cnf -p < /usr/share/zoneminder/db/zm_create.sql
+mysql --defaults-file=/etc/mysql/debian.cnf -p -e "grant lock tables,alter,drop,select,insert,update,delete,create,index,alter routine,create routine, trigger,execute,references on zm.* to 'zmuser'@localhost identified by 'zmpass';"
+
+systemctl enable zoneminder
+systemctl start zoneminder
+systemctl daemon-reload # necessary when upgrading
 
 echo
 echo "Install complete. Please follow instructions in starter guide : https://zoneminder.readthedocs.io/en/latest/userguide/gettingstarted.html"
