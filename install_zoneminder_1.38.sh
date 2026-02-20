@@ -17,12 +17,12 @@ packages2install=("software-properties-common" "apache2" "mariadb-server" "php" 
 for p in "${packages2install[@]}"; do
 	if ! dpkg-query -l "$p" | grep -q "^[hi]i"; then
 		if test "$p" = "mariadb-server" &&  dpkg-query -l "mysql-server" | grep -q "^[hi]i"; then
-    	echo "mysql-server is already installed , mariadb-server will not be installed !"
-    	continue
-    else
-    	apt-get install -qq "$p"
-    fi
-  fi
+    		echo "mysql-server is already installed , mariadb-server will not be installed !"
+    		continue
+    	else
+    		apt-get install -qq "$p"
+	    fi
+	fi
 done
 
 # it is better to not modify the php.ini file ( modification will be erased when php will be upgrade )
@@ -38,7 +38,6 @@ apt clean && apt full-upgrade -y
 
 # do  what you need in your OS :
 case "$os" in
-
 	Debian|LMDE)
 		if test -f /etc/apt/trusted.gpg.d/zmrepo.gpg; then
 			rm /etc/apt/trusted.gpg.d/zmrepo.gpg
@@ -49,7 +48,6 @@ case "$os" in
 		fi
 		# echo "deb https://zmrepo.zoneminder.com/debian/release-1.38 $VERSION_CODENAME/" | sudo tee /etc/apt/sources.list.d/zoneminder.list
 		echo "deb https://zmrepo.zoneminder.com/debian/master $VERSION_CODENAME/" | sudo tee /etc/apt/sources.list.d/zoneminder.list
-		apt update
 	;;
 
 	Ubuntu|Linux)
@@ -60,7 +58,7 @@ case "$os" in
 	;;
 esac
 
-apt-get install -qq zoneminder && apt autopurge -y
+apt update && apt-get install -qq zoneminder && apt autopurge -y
 
 # configuring apache2 on start :
 systemctl enable apache2
