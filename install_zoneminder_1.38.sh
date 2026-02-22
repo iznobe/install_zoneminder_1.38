@@ -12,18 +12,23 @@ apt update || exit 0 # quit if update isn't working
 test -f /etc/issue.net && os=$(cut -d " " -f1  /etc/issue.net) || exit 1
 test -f /usr/lib/os-release && . /usr/lib/os-release || exit 1 # $ID , $NAME , $VERSION_CODENAME"
 
+# may be necessary to install mariadb :
+touch /etc/mysql/mariadb.cnf
 # veryfi and install if necessary , packages listed below :
-packages2install=("software-properties-common" "apache2" "mariadb-server" "php" "libapache2-mod-php" "php-mysql" "lsb-release" "gnupg2")
+packages2install=("mariadb-server" "apache2" "php" "libapache2-mod-php" "php-mysql" "lsb-release" "gnupg2")
 for p in "${packages2install[@]}"; do
 	if ! dpkg-query -l "$p" | grep -q "^[hi]i"; then
 		if test "$p" = "mariadb-server" &&  dpkg-query -l "mysql-server" | grep -q "^[hi]i"; then
-    		echo "mysql-server is already installed , mariadb-server will not be installed !"
-    		continue
-    	else
-    		apt-get install -qq "$p"
-	    fi
+    	echo "mysql-server is already installed , mariadb-server will not be installed !"
+    	continue
+    else
+    	apt-get install  "$p" # -qq
+	  fi
+	 else
+	 	echo "$p is already installed. nothing to do."
 	fi
 done
+sleep 10
 
 # it is better to not modify the php.ini file ( modification will be erased when php will be upgrade )
 # but if we create a new file in directory /etc/php/*/apache2/conf.d/zoneminder.custom.ini for each version of apache , no problem , so :
@@ -45,9 +50,10 @@ case "$os" in
 		if ! wget -O- https://zmrepo.zoneminder.com/debian/archive-keyring.gpg | sudo gpg --dearmour -o /etc/apt/trusted.gpg.d/zmrepo.gpg; then
 			echo "error to retrieve key!"
 			exit 2
+		else
+			# echo "deb https://zmrepo.zoneminder.com/debian/release-1.38 $VERSION_CODENAME/" | sudo tee /etc/apt/sources.list.d/zoneminder.list
+			echo "deb https://zmrepo.zoneminder.com/debian/master $VERSION_CODENAME/" | sudo tee /etc/apt/sources.list.d/zoneminder.list
 		fi
-		# echo "deb https://zmrepo.zoneminder.com/debian/release-1.38 $VERSION_CODENAME/" | sudo tee /etc/apt/sources.list.d/zoneminder.list
-		echo "deb https://zmrepo.zoneminder.com/debian/master $VERSION_CODENAME/" | sudo tee /etc/apt/sources.list.d/zoneminder.list
 	;;
 
 	Ubuntu|Linux)
@@ -57,9 +63,9 @@ case "$os" in
 	*)
 	;;
 esac
-
+sleep 10
 apt update && apt-get install -qq zoneminder && apt autopurge -y
-
+sleep 10
 # configuring apache2 on start :
 systemctl enable apache2
 systemctl start apache2
